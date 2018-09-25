@@ -64,7 +64,7 @@ source timing_analysis_pkg_v7.tcl
 ## mode : 0 : default -- baselining
 ##        1 : user_defined
 ##        2 : full (all items listed above will be done)
-set mode 2
+set mode 1
 array set baseline {}
 array set user_defined {}
 array set full {}
@@ -76,13 +76,13 @@ timing_analysis::check_array full
 timing_analysis::check_array really_done
 
 array set baseline {
-  s01_check_timing         1
-  s02_qor_sugest           1
-  s03_logic_level          1
-  s04_ff2block_ctrl        1
+  s01_check_timing         0
+  s02_qor_sugest           0
+  s03_logic_level          0
+  s04_ff2block_ctrl        0
   s05_paths_start_blocks   0
   s06_paths_end_srl        0
-  s07_paths_between_blocks 1
+  s07_paths_between_blocks 0
   s08_clock_skew           0
   s09_cdc                  1
   s10_ctrl_set             1
@@ -163,9 +163,9 @@ switch -exact -- $mode {
   default { timing_analysis::copy_array baseline really_done }
 }
 ##########################################################################################
-set dcp_is_open 1
+set dcp_is_open 0
 ## if dcp is open, it is unnecessary to set the dcp_name
-set dcp_name *.dcp
+set dcp_name top_6482_routed.dcp
 ## opt_design 1, otherwise 0
 set is_opt_design 0
 ##########################################################################################
@@ -655,7 +655,6 @@ if { $really_done(s10_ctrl_set) == 1 } {
     puts "Number of unique control sets: $uni_ctrl_sets --> $uni_ph --> Noted"
   } elseif {$uni_pf >= 0.15 && $uni_pf < 0.25} {
     puts "Number of unique control sets: $uni_ctrl_sets --> $uni_ph --> Analysis Required"
-    close $ctrl_set_fid
     set fn ${true_section}_ctrl_set_analysis
     set ctrl_set_fid [open ./${fn}.rpt w]
     puts $ctrl_set_fid \
@@ -759,10 +758,10 @@ if { $really_done(s14_bram_reg) == 1 } {
     puts $fid "#\n# File created on [clock format [clock seconds]] \n#\n"
     puts $fid "BRAM, CLKA, CLKA_FREQ, CLKB, CLKB_FREQ, DOA_REG, DOA_CONNECTED, DOB_REG, DOB_CONNECTED"
     foreach used_bram_i $used_bramx {
-      set douta_pin [get_pins -of $used_bram_i -filter "NAME =~ *DOUTADOUT* || NAME =~ *DOADO*"]
-      set doutb_pin [get_pins -of $used_bram_i -filter "NAME =~ *DOUTBDOUT* || NAME =~ *DOBDO*"]
-      set clka_pin  [get_pins -of $used_bram_i -filter "NAME =~ *CLKARDCLK*"]
-      set clkb_pin  [get_pins -of $used_bram_i -filter "NAME =~ *CLKBWRCLK*"]
+      set douta_pin [get_pins -of [get_cells $used_bram_i] -filter "NAME =~ *DOUTADOUT* || NAME =~ *DOADO*"]
+      set doutb_pin [get_pins -of [get_cells $used_bram_i] -filter "NAME =~ *DOUTBDOUT* || NAME =~ *DOBDO*"]
+      set clka_pin  [get_pins -of [get_cells $used_bram_i] -filter "NAME =~ *CLKARDCLK*"]
+      set clkb_pin  [get_pins -of [get_cells $used_bram_i] -filter "NAME =~ *CLKBWRCLK*"]
       set clka_net  [get_nets -of $clka_pin]
       set clkb_net  [get_nets -of $clkb_pin]
       if {[get_property TYPE $clka_net] == "GLOBAL_CLOCK"} {
@@ -858,7 +857,7 @@ if { $really_done(s15_uram_reg) == 1 } {
     set uram_dout_b_no_reg [list]
     set uram_freq [list]
     foreach i_used_urams $used_urams {
-      set uram_clk_pin [get_pins -of $i_used_urams -filter "NAME =~ */CLK"]
+      set uram_clk_pin [get_pins -of [get_cells $i_used_urams] -filter "NAME =~ */CLK"]
       set uram_clk_period [get_property PERIOD [get_clocks -of $uram_clk_pin]]
       set uram_clk_freq [format "%.2f" [expr 1.0/$uram_clk_period*1000]]
       set dout_a [get_pins -of $i_used_urams -filter "NAME =~ */DOUT_A[*]"]
@@ -1014,10 +1013,10 @@ set severity "analysis"
 set true_section [timing_analysis::double_digits $section_index]
 
 if { $really_done(s19_latch) == 1 } {
-  set used_latch [get_cells -hierarchical -filter { PRIMITIVE_TYPE =~ FLOP_LATCH.latch.* } -quiet]
+  set used_latch [get_cells -hierarchical -filter { REF_NAME == LDCE || REF_NAME == LDPE } -quiet]
   set used_latch_num [llength $used_latch]
   if {$used_latch_num > 1} {
-    show_objects -name latch_${used_latch_num}
+    show_objects -name latch_${used_latch_num} -object $used_latch
     set fn ${true_section}_Latch_${severity}
     set fid [open $fn.rpt w]
     foreach i_used_latch $used_latch {
