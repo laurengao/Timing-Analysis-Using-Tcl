@@ -64,7 +64,7 @@ source timing_analysis_pkg_v7.tcl
 ## mode : 0 : default -- baselining
 ##        1 : user_defined
 ##        2 : full (all items listed above will be done)
-set mode 1
+set mode 2
 array set baseline {}
 array set user_defined {}
 array set full {}
@@ -165,9 +165,9 @@ switch -exact -- $mode {
 ##########################################################################################
 set dcp_is_open 0
 ## if dcp is open, it is unnecessary to set the dcp_name
-set dcp_name top_6482_routed.dcp
+set dcp_name top_opt.dcp
 ## opt_design 1, otherwise 0
-set is_opt_design 0
+set is_opt_design 1
 ##########################################################################################
 set max_paths_neg_slack     100
 set max_paths_logic_level   100
@@ -766,17 +766,27 @@ if { $really_done(s14_bram_reg) == 1 } {
       set clkb_net  [get_nets -of $clkb_pin]
       if {[get_property TYPE $clka_net] == "GLOBAL_CLOCK"} {
         set clka [get_clocks -of $clka_pin]
-        set clka_period [get_property PERIOD $clka]
-        set clka_period [lindex [timing_analysis::get_max_min $clka_period] end]
-        set clka_freq [format "%.2f" [expr 1.0/$clka_period*1000]]
+        if {[llength $clka] == 1} {
+          set clka_period [get_property PERIOD $clka]
+          set clka_period [lindex [timing_analysis::get_max_min $clka_period] end]
+          set clka_freq [format "%.2f" [expr 1.0/$clka_period*1000]]
+        } else {
+          set clka_period "NaN"
+          set clka_freq "NaN"
+        }
       } else {
         set clka_freq 0
       }
       if {[get_property TYPE $clkb_net] == "GLOBAL_CLOCK"} {
         set clkb [get_clocks -of $clkb_pin]
-        set clkb_period [get_property PERIOD $clkb]
-        set clkb_period [lindex [timing_analysis::get_max_min $clkb_period] end]
-        set clkb_freq [format "%.2f" [expr 1.0/$clkb_period*1000]]
+        if {[llength $clkb] == 1} {
+          set clkb_period [get_property PERIOD $clkb]
+          set clkb_period [lindex [timing_analysis::get_max_min $clkb_period] end]
+          set clkb_freq [format "%.2f" [expr 1.0/$clkb_period*1000]]
+        } else {
+          set clkb_period "NaN"
+          set clkb_freq "NaN"
+        }
       } else {
         set clkb_freq 0
       }
